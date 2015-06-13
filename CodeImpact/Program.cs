@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CodeImpact.Controller;
+﻿using CodeImpact.Controller;
 
 namespace CodeImpact
 {
@@ -13,8 +7,7 @@ namespace CodeImpact
         static void Main(string[] args)
         {
             var method = new PopulateDirectoryController();
-            method.PopulateDictionary("D:\\Dev\\Hogwarts\\project");
-            Console.ReadKey();
+            method.PopulateDictionary("D:\\Dev\\CodeImpact");
         }
     }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CodeImpact.Model;
+using ICSharpCode.NRefactory.CSharp;
 using Neo4jClient;
 
 namespace CodeImpact.Commands
@@ -10,6 +11,7 @@ namespace CodeImpact.Commands
     class CreateFileStructureCommand
     {
         public static GraphClient Client { get; private set; }
+        private SyntaxTree _syntaxTree;
 
         public CreateFileStructureCommand()
         {
@@ -68,7 +70,7 @@ namespace CodeImpact.Commands
                 };
                 var file1 = file;
                 Client.Cypher
-                    .Merge("(file:File { FileName: {fileName}})")
+                    .Merge("(file:File { File: {fileName}})")
                     .OnCreate()
                     .Set("file = {fileClass}")
                     .WithParams(new
