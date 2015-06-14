@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using CodeImpact.Model;
 using ICSharpCode.NRefactory.CSharp;
-using ICSharpCode.NRefactory.CSharp.TypeSystem;
-using ICSharpCode.NRefactory.TypeSystem;
 using Neo4jClient;
 
 namespace CodeImpact.Commands
@@ -40,7 +38,6 @@ namespace CodeImpact.Commands
                     var otherTree = _syntaxTree.Descendants.Where(x => x.NodeType == NodeType.Member).ToList();
                 foreach (var node in otherTree)
                 {
-                    var methodtext = node.ToString();
                     var sing = node.Children.SingleOrDefault(x => x.Role == Roles.Identifier);
                     if (sing != null)
                     {
@@ -50,32 +47,17 @@ namespace CodeImpact.Commands
                         {
                             mem = members.SingleOrDefault(x => x.Member.MemberName == ".ctor");
                         }
-                        GetMethodsCalled(mem.Member, methodtext, f);
+                        foreach (var m in node.Descendants.Where(x => x.Role == Roles.Identifier))
+                        {
+                            foreach (var me in members)
+                            {
+                                if (me.Member.MemberName == m.ToString() && me.Member.MemberFullName != mem.Member.MemberFullName)
+                                {
+                                    LinkMethods(mem.Member.MemberFullName, me.Member.MemberFullName);
+                                }
+                            }
+                        }
                     }
-                }
-            }
-        }
-
-
-        private void GetMethodsCalled(Member memberBase, string methodBase, string fileClass)
-        {
-            var members = Client.Cypher
-                .OptionalMatch("(member:Member)-[:BELONGS_TO]->(file:File)")
-                .Where((FileClass file) => file.File == fileClass)
-                .Return(member => member.As<Member>())
-                .Results
-                .ToList();
-         
-            foreach (var m in members)
-            {
-                if (methodBase.Contains(m.MemberName) && memberBase.MemberFullName != m.MemberFullName)
-                {
-                    Client.Cypher
-                        .Match("(fromMember:Member)", "(toMember:Member)")
-                        .Where((Member toMember) => toMember.MemberFullName == m.MemberFullName)
-                        .AndWhere((Member fromMember) => fromMember.MemberFullName == memberBase.MemberFullName)
-                        .CreateUnique("fromMember-[:METHOD_CALLS]->toMember")
-                        .ExecuteWithoutResults();
                 }
             }
         }
@@ -122,15 +104,20 @@ namespace CodeImpact.Commands
                     var otherTree = _syntaxTree.Descendants.Where(x => x.NodeType == NodeType.Member).ToList();
                     foreach (var node in otherTree)
                     {
-                        var methodtext = node.ToString();
                         var singleChild = node.Children.SingleOrDefault(x => x.Role == Roles.Identifier);
                         if (singleChild != null)
                         {
                             var singleChildString = singleChild.ToString();
                             var mem = baseMembers.SingleOrDefault(x => x.MemberName == singleChildString);
-                            foreach (var member in members.Where(member => methodtext.Contains(member.MemberName)).Where(member => mem != null))
+                            foreach (var m in node.Descendants.Where(x => x.Role == Roles.Identifier))
                             {
-                                LinkMethods(mem.MemberFullName, member.MemberFullName);
+                                foreach (var me in members)
+                                {
+                                    if (me.MemberName == m.ToString() && me.MemberFullName != mem.MemberFullName)
+                                    {
+                                        LinkMethods(mem.MemberFullName, me.MemberFullName);
+                                    }
+                                }
                             }
 
                         }
