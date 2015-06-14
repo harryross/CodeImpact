@@ -79,5 +79,77 @@ namespace CodeImpact.Commands
                 }
             }
         }
+
+        public void GetMethodCallsToOtherFiles(List<string> files)
+        {
+            foreach (var file in files)
+            {
+                GetMethodCalls(file);
+            }
+        }
+
+        private void GetMethodCalls(string file)
+        {
+            var allFiles = Client.Cypher
+                .OptionalMatch("(baseFile:File)-[REFERENCES]->(relatedFiles:File)")
+                 .Where((FileClass baseFile) => baseFile.File == file)
+                 .Return((baseFile, relatedFiles) => new
+                 {
+                     BaseFile = baseFile.As<FileClass>(),
+                     RelatedFiles = relatedFiles.CollectAs<FileClass>()
+                 }).Results.SingleOrDefault();
+            var baseMembers = Client.Cypher
+                .OptionalMatch("(member:Member)-[:BELONGS_TO]->(mainFile:File)")
+                .Where((FileClass mainFile) => mainFile.File == file)
+                .Return(member => member.As<Member>())
+                .Results
+                .ToList();
+            
+            
+            if (allFiles != null)
+            {
+                foreach (var files in allFiles.RelatedFiles)
+                {
+                    var members = Client.Cypher
+                        .OptionalMatch("(member:Member)-[:BELONGS_TO]->(mainFile:File)")
+                        .Where((FileClass mainFile) => mainFile.File == files.Data.File)
+                        .Return(member => member.As<Member>())
+                        .Results
+                        .ToList();
+
+                    var text = File.ReadAllText(file);
+                    _syntaxTree = new CSharpParser().Parse(text, Path.GetFileName(file));
+                    var otherTree = _syntaxTree.Descendants.Where(x => x.NodeType == NodeType.Member).ToList();
+                    foreach (var node in otherTree)
+                    {
+                        var methodtext = node.ToString();
+                        var singleChild = node.Children.SingleOrDefault(x => x.Role == Roles.Identifier);
+                        if (singleChild != null)
+                        {
+                            var singleChildString = singleChild.ToString();
+                            var mem = baseMembers.SingleOrDefault(x => x.MemberName == singleChildString);
+                            foreach (var member in members.Where(member => methodtext.Contains(member.MemberName)).Where(member => mem != null))
+                            {
+                                LinkMethods(mem.MemberFullName, member.MemberFullName);
+                            }
+
+                        }
+
+
+
+                    }
+                }
+            }
+        }
+
+        private void LinkMethods(string fromMethod, string toMethod)
+        {
+            Client.Cypher
+                .Match("(fromMember:Member)", "(toMember:Member)")
+                .Where((Member toMember) => toMember.MemberFullName == toMethod)
+                .AndWhere((Member fromMember) => fromMember.MemberFullName == fromMethod)
+                .CreateUnique("fromMember-[:METHOD_CALLS]->toMember")
+                .ExecuteWithoutResults();
+        }
     }
 }
