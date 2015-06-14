@@ -63,6 +63,9 @@ namespace CodeImpact.Commands
         {
             foreach (var file in list)
             {
+                var text = File.ReadAllText(file);
+                _syntaxTree = new CSharpParser().Parse(text, Path.GetFileName(file));
+                var tree = _syntaxTree.ToTypeSystem();
                 var fileClass = new FileClass
                 {
                     File = file,

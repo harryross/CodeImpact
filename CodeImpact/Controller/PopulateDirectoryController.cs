@@ -25,6 +25,8 @@ namespace CodeImpact.Controller
             {
                 createMethod.CreateMethodDependanciesForFile(v);
             }
+            var methods = new CreateMethodRelationships();
+            methods.CreateMethodRelationshipsAll(validEntries);
         }
     }
 }

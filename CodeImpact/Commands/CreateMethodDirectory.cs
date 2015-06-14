@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using CodeImpact.Model;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.CSharp.TypeSystem;
@@ -49,16 +48,18 @@ namespace CodeImpact.Commands
                 File = memberBase.BodyRegion.FileName,
                 MemberType = memberBase.SymbolKind.ToString(),
                 ReturnType = memberBase.ReturnType.ToString(),
-                MemberName = memberBase.ReflectionName
+                MemberName = memberBase.Name,
+                MemberFullName = memberBase.ReflectionName,
+                Accessibility = memberBase.Accessibility.ToString()
             };
 
             Client.Cypher
-                    .Merge("(member:Member { MemberName: {memberName}})")
+                    .Merge("(member:Member { MemberFullName: {memberFullName}})")
                     .OnCreate()
                     .Set("member = {member}")
                     .WithParams(new
                     {
-                        memberName = member.MemberName,
+                        memberFullName = member.MemberFullName,
                         member
                     })
                     .ExecuteWithoutResults();
@@ -66,7 +67,7 @@ namespace CodeImpact.Commands
             Client.Cypher
                 .Match("(fromMember:Member)", "(toFile:File)")
                 .Where((FileClass toFile) => toFile.File == _path)
-                .AndWhere((Member fromMember) => fromMember.MemberName == member.MemberName)
+                .AndWhere((Member fromMember) => fromMember.MemberFullName == member.MemberFullName)
                 .CreateUnique("fromMember-[:BELONGS_TO]->toFile")
                 .ExecuteWithoutResults();
         }
