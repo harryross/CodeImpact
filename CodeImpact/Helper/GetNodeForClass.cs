@@ -31,6 +31,28 @@ namespace CodeImpact.Helper
             return theNode;
         }
 
+        public static AstNode GetTopNodeForMember(Member fileClass)
+        {
+            SyntaxTree tree;
+            AstNode theNode = null;
+            var fileText = File.ReadAllText(fileClass.File);
+            tree = new CSharpParser().Parse(fileText, Path.GetFileName(fileClass.File));
+            var classTree =
+                tree.Descendants.Where(
+                    y => y.NodeType == NodeType.TypeDeclaration && y.Role == Role.GetByIndex(2));
+
+            foreach (var ct in classTree)
+            {
+                var temp = ct.Descendants.First(x => x.Role == Roles.Identifier && x.NodeType == NodeType.Token && x.ToString() == fileClass.MemberName);
+                if (temp.ToString() == fileClass.MemberName)
+                {
+                    theNode = ct;
+                    continue;
+                }
+            }
+            return theNode;
+        }
+
         public static CSharpUnresolvedFile GetSyntaxTree(FileClass fileClass)
         {
             SyntaxTree tree;
