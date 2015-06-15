@@ -11,6 +11,7 @@ namespace CodeImpact.Model
         public string MemberType { get; set; }
         public string Accessibility { get; set; }
         public List<string> Parameters { get; set; }
+        public string Class { get; set; }
     }
 
 

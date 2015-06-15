@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using CodeImpact.Helper;
 using CodeImpact.Model;
 using ICSharpCode.NRefactory.CSharp;
 using Neo4jClient;
@@ -21,39 +23,47 @@ namespace CodeImpact.Commands
             
             Client.Connect();
             UpdateDatabase(list);
-            CreateFileRelationships(list);
+            CreateClassRelationships();
         }
 
-        private void CreateFileRelationships(List<string> list)
+        private void CreateClassRelationships()
         {
-            string fileText;
-            foreach (var filePath in list)
+            var classes = Client.Cypher
+                .Match("(_class:Class)")
+                .Return(_class => _class.As<FileClass>())
+                .Results.ToList();
+
+            foreach (var c in classes)
             {
-                fileText = File.ReadAllText(filePath);
-                List<string> tempList = new List<string>(list);
-                tempList.Remove(filePath);
-                foreach (var file in tempList)
+                AstNode theNode = GetNodeForClass.GetTopNodeForClass(c);
+                if (theNode != null)
                 {
-                    string temp = Path.GetFileName(file);
-                    if (temp != null)
+                    var tree = theNode.Descendants.Where(x => x.Role == Roles.Identifier && x.Parent.Role == Roles.Type && x.ToString() != "var").ToList();
+                    foreach (var member in tree)
                     {
-                        temp = temp.Replace(".cs", String.Empty);
-                        if (fileText.Contains(temp))
+                        if (member.ToString() != c.ClassName)
                         {
-                            AddFileRelationShip(filePath, file);
+                            var member1 = member;
+                            var name = classes.Where(x => x.ClassName == member1.ToString()).ToList();
+                            if (name.Count != 1)
+                            {
+                                continue;
+                            }
+                            AddClassRelationShip(c.FullClassName, name.First().FullClassName);
                         }
                     }
                 }
             }
-            
         }
 
-        private void AddFileRelationShip(string fromSourceFile, string toSourceFile)
+
+
+        private void AddClassRelationShip(string fromSourceFile, string toSourceFile)
         {
             Client.Cypher
-                .Match("(fromFile:File)", "(toFile:File)")
-                .Where((FileClass fromFile) => fromFile.File == fromSourceFile)
-                .AndWhere((FileClass toFile) => toFile.File == toSourceFile)
+                .Match("(fromFile:Class)", "(toFile:Class)")
+                .Where((FileClass fromFile) => fromFile.FullClassName == fromSourceFile)
+                .AndWhere((FileClass toFile) => toFile.FullClassName == toSourceFile)
                 .CreateUnique("fromFile-[:REFERENCES]->toFile")
                 .ExecuteWithoutResults();
         }
@@ -62,26 +72,43 @@ namespace CodeImpact.Commands
         {
             foreach (var file in list)
             {
-                var text = File.ReadAllText(file);
-                _syntaxTree = new CSharpParser().Parse(text, Path.GetFileName(file));
-                var tree = _syntaxTree.ToTypeSystem();
+                var results = GetClassesForFile(file);
+                foreach (var fileClass in results)
+                {
+                    
+                    Client.Cypher
+                        .Merge("(_class:Class { FullClassName: {fullClassName}})")
+                        .OnCreate()
+                        .Set("_class = {fileClass}")
+                        .WithParams(new
+                        {
+                            fullClassName = fileClass.FullClassName,
+                            fileClass
+                        })
+                        .ExecuteWithoutResults();
+                }
+                
+            }
+        }
+
+        private List<FileClass> GetClassesForFile(string fileName)
+        {
+            var fileText = File.ReadAllText(fileName);
+            _syntaxTree = new CSharpParser().Parse(fileText, Path.GetFileName(fileName));
+            var tree = _syntaxTree.ToTypeSystem();
+            var list = new List<FileClass>();
+            foreach (var tld in tree.TopLevelTypeDefinitions)
+            {
                 var fileClass = new FileClass
                 {
-                    File = file,
+                    FullClassName = tld.ReflectionName,
+                    ClassName = tld.Name,
+                    File = fileName,
                     Type = FileType.CSharp
                 };
-                var file1 = file;
-                Client.Cypher
-                    .Merge("(file:File { File: {fileName}})")
-                    .OnCreate()
-                    .Set("file = {fileClass}")
-                    .WithParams(new
-                    {
-                        fileName = file1,
-                        fileClass
-                    })
-                    .ExecuteWithoutResults();
+                list.Add(fileClass);
             }
+            return list;
         }
     }
 }

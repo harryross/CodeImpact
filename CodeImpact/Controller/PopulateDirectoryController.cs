@@ -21,13 +21,12 @@ namespace CodeImpact.Controller
             var createCommand = new CreateFileStructureCommand();
             createCommand.WriteList(validEntries);
             var createMethod = new CreateMethodDirectory();
-            foreach (var v in validEntries)
-            {
-                createMethod.CreateMethodDependanciesForFile(v);
-            }
-            var methods = new CreateMethodRelationships();
+
+            createMethod.CreateMethodDependanciesForFile();
+
+            /*var methods = new CreateMethodRelationships();
             methods.CreateMethodRelationshipsAll(validEntries);
-            methods.GetMethodCallsToOtherFiles(validEntries);
+            methods.GetMethodCallsToOtherFiles(validEntries);*/
         }
     }
 }
