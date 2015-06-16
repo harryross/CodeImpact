@@ -25,15 +25,18 @@ namespace CodeImpact.Commands
             foreach (var f in files)
             {
                 var members = Client.Cypher
-                    .OptionalMatch("(member:Member)-[:BELONGS_TO]->(file:File)")
-                    .Where((FileClass file) => file.File == f)
+                    .OptionalMatch("(member:Member)-[:BELONGS_TO]->(file:Class)")
+                    .Where((FileClass file) => file.FullClassName == f)
                     .Return((member, file) => new
                     {
                         Member = member.As<Member>(),
                         File = file.As<FileClass>()
                     })
                     .Results.ToList();
-                    var text = File.ReadAllText(f);
+                    
+                
+                
+                var text = File.ReadAllText(f);
                     _syntaxTree = new CSharpParser().Parse(text, f);
                     var otherTree = _syntaxTree.Descendants.Where(x => x.NodeType == NodeType.Member).ToList();
                 foreach (var node in otherTree)

@@ -38,6 +38,23 @@ namespace CodeImpact.Commands
                 AstNode theNode = GetNodeForClass.GetTopNodeForClass(c);
                 if (theNode != null)
                 {
+                    var hasBaseType =
+                        theNode.Descendants.Where(x => x.NodeType == NodeType.TypeReference && x.Role == Roles.BaseType)
+                            .ToList();
+                    foreach (var bt in hasBaseType)
+                    {
+                        if (bt.ToString() != c.ClassName)
+                        {
+                            var member1 = bt;
+                            var name = classes.Where(x => x.ClassName == member1.ToString()).ToList();
+                            if (name.Count != 1)
+                            {
+                                continue;
+                            }
+                            AddBaseTypeRelationship(c.FullClassName, name.First().FullClassName);
+                        }
+                        
+                    }
                     var tree = theNode.Descendants.Where(x => x.Role == Roles.Identifier && x.Parent.Role == Roles.Type && x.ToString() != "var").ToList();
                     foreach (var member in tree)
                     {
@@ -49,7 +66,7 @@ namespace CodeImpact.Commands
                             {
                                 continue;
                             }
-                            AddClassRelationShip(c.FullClassName, name.First().FullClassName);
+                            AddClassRelationship(c.FullClassName, name.First().FullClassName);
                         }
                     }
                 }
@@ -58,13 +75,23 @@ namespace CodeImpact.Commands
 
 
 
-        private void AddClassRelationShip(string fromSourceFile, string toSourceFile)
+        private void AddClassRelationship(string fromSourceFile, string toSourceFile)
         {
             Client.Cypher
                 .Match("(fromFile:Class)", "(toFile:Class)")
                 .Where((FileClass fromFile) => fromFile.FullClassName == fromSourceFile)
                 .AndWhere((FileClass toFile) => toFile.FullClassName == toSourceFile)
                 .CreateUnique("fromFile-[:REFERENCES]->toFile")
+                .ExecuteWithoutResults();
+        }
+
+        private void AddBaseTypeRelationship(string fromSourceClass, string toSourceClass)
+        {
+            Client.Cypher
+                .Match("(fromFile:Class)", "(toFile:Class)")
+                .Where((FileClass fromFile) => fromFile.FullClassName == fromSourceClass)
+                .AndWhere((FileClass toFile) => toFile.FullClassName == toSourceClass)
+                .CreateUnique("fromFile-[:BASE_TYPE]->toFile")
                 .ExecuteWithoutResults();
         }
 
@@ -99,12 +126,16 @@ namespace CodeImpact.Commands
             var list = new List<FileClass>();
             foreach (var tld in tree.TopLevelTypeDefinitions)
             {
+                var isFinalNode = tld.Name.ToLower().Contains("controller");
+
                 var fileClass = new FileClass
                 {
                     FullClassName = tld.ReflectionName,
                     ClassName = tld.Name,
                     File = fileName,
-                    Type = FileType.CSharp
+                    Type = FileType.CSharp,
+                    Kind = tld.Kind,
+                    IsWebsiteClas = isFinalNode
                 };
                 list.Add(fileClass);
             }
