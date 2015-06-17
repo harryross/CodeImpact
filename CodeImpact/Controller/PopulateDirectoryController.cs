@@ -22,7 +22,7 @@ namespace CodeImpact.Controller
             createCommand.WriteList(validEntries);
             var createMethod = new CreateMethodDirectory();
 
-            createMethod.CreateMethodDependanciesForFile();
+            //createMethod.CreateMethodDependanciesForFile();
 
             /*var methods = new CreateMethodRelationships();
             methods.CreateMethodRelationshipsAll(validEntries);

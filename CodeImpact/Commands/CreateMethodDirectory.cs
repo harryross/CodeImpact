@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using CodeImpact.Helper;
 using CodeImpact.Model;
 using ICSharpCode.NRefactory.CSharp;
-using ICSharpCode.NRefactory.CSharp.TypeSystem;
 using ICSharpCode.NRefactory.TypeSystem;
 using Neo4jClient;
 
@@ -14,7 +11,6 @@ namespace CodeImpact.Commands
     public class CreateMethodDirectory
     {
         public static GraphClient Client { get; private set; }
-        private SyntaxTree _syntaxTree;
 
         public CreateMethodDirectory()
         {
@@ -32,12 +28,7 @@ namespace CodeImpact.Commands
             foreach (var c in classes)
             {
                 GetMembersInClass(c);
-                var tree = GetNodeForClass.GetSyntaxTree(c);
             }
-/*            var text = File.ReadAllText(path);
-            _syntaxTree = new CSharpParser().Parse(text, Path.GetFileName(path));
-            var tree = _syntaxTree.ToTypeSystem();
-            PrintMethodTree(tree);*/
         }
 
 
