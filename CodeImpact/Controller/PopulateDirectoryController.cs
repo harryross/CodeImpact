@@ -23,6 +23,7 @@ namespace CodeImpact.Controller
             var createMethod = new CreateMethodDirectory();
 
             createMethod.CreateMethodDependanciesForFile();
+            createMethod.GetMemberReferencesForInterfaces();
 
             /*var methods = new CreateMethodRelationships();
             methods.CreateMethodRelationshipsAll(validEntries);
