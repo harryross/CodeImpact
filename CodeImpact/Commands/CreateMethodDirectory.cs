@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using CodeImpact.Helper;
 using CodeImpact.Model;
-using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.TypeSystem;
+using Mono.Cecil;
 using Neo4jClient;
 
 namespace CodeImpact.Commands
@@ -31,6 +31,66 @@ namespace CodeImpact.Commands
                 GetMembersInClass(c);
             }
         }
+
+        public void GetMemberReferencesForInterfaces()
+        {
+            Client.Connect();
+            var interfaces = GetAllInterfaces();
+            foreach (var @interface in interfaces)
+            {
+                GetInterfaceMemberImplentation(@interface);
+            }
+        }
+
+        private void GetInterfaceMemberImplentation(FileClass @interface)
+        {
+            var implementedClass = GetImplementationsOfInterface(@interface);
+            var interfaceMethods = GetMethodsFromFileClass(@interface);
+            foreach (var fileClass in implementedClass)
+            {
+                var classMethods = GetMethodsFromFileClass(fileClass);
+                foreach (var classMethod in classMethods)
+                {
+                    var relationshipMethod =
+                        interfaceMethods.SingleOrDefault(x => x.MemberName == classMethod.MemberName);
+                    if (relationshipMethod != null)
+                    {
+                        CreateMethodImplentation(relationshipMethod, classMethod);
+                    }
+                }
+            }
+        }
+
+        private void CreateMethodImplentation(Member interfaceMethod, Member classMethod)
+        {
+            Client.Cypher
+                .Match("(fromMember:Member)", "(toMember:Member)")
+                .Where((Member toMember) => toMember.MemberFullName == classMethod.MemberFullName)
+                .AndWhere((Member fromMember) => fromMember.MemberFullName == interfaceMethod.MemberFullName)
+                .CreateUnique("fromMember-[:IMPLEMENTED_BY]->toMember")
+                .ExecuteWithoutResults();
+        }
+
+        private IEnumerable<Member> GetMethodsFromFileClass(FileClass fileClass)
+        {
+            var methods = Client.Cypher
+                .Match("(member:Member)-[BELONGS_TO]->(mainFile:Class)")
+                .Where((FileClass mainFile) => mainFile.FullClassName == fileClass.FullClassName)
+                .Return(member => member.As<Member>())
+                .Results
+                .ToList();
+            return methods;
+        }
+
+        public IEnumerable<FileClass> GetAllInterfaces()
+        {
+            var interfaces = Client.Cypher
+                .Match("(_interface:Class)")
+                .Where((FileClass _interface) => _interface.Kind.ToString() == TypeKind.Interface.ToString())
+                .Return(_interface => _interface.As<FileClass>())
+                .Results.ToList();
+            return interfaces;
+        } 
         
 
         private void GetMembersInClass(FileClass fileClass)
@@ -41,7 +101,7 @@ namespace CodeImpact.Commands
             {
                 implementations = GetImplementationsOfInterface(fileClass);
             }
-            var member = tree.TopLevelTypeDefinitions.SingleOrDefault(x => x.Name == fileClass.ClassName);
+            var member = tree.TopLevelTypeDefinitions.SingleOrDefault(x => x.ReflectionName == fileClass.FullClassName);
             if (member != null)
             {
                 foreach (var method in member.Methods)
@@ -54,7 +114,7 @@ namespace CodeImpact.Commands
         public IEnumerable<FileClass> GetImplementationsOfInterface(FileClass fileClass)
         {
             var classes = Client.Cypher
-                .OptionalMatch("(_class:Class)-[:BASE_TYPE]->(baseType:Class)")
+                .Match("(_class:Class)-[:BASE_TYPE*]->(baseType:Class)")
                 .Where((FileClass baseType) => baseType.FullClassName == fileClass.FullClassName)
                 .Return(_class => _class.As<FileClass>())
                 .Results.ToList();
