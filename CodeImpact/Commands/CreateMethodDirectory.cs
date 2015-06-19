@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CodeImpact.Helper;
 using CodeImpact.Model;
@@ -30,12 +31,16 @@ namespace CodeImpact.Commands
                 GetMembersInClass(c);
             }
         }
-
+        
 
         private void GetMembersInClass(FileClass fileClass)
         {
-            AstNode theNode = GetNodeForClass.GetTopNodeForClass(fileClass);
             var tree = GetNodeForClass.GetSyntaxTree(fileClass);
+            IEnumerable<FileClass> implementations = null;
+            if (fileClass.Kind == TypeKind.Interface)
+            {
+                implementations = GetImplementationsOfInterface(fileClass);
+            }
             var member = tree.TopLevelTypeDefinitions.SingleOrDefault(x => x.Name == fileClass.ClassName);
             if (member != null)
             {
@@ -44,6 +49,16 @@ namespace CodeImpact.Commands
                     GetMethodsInClassAndCreateRelationship(fileClass, method);
                 }
             }
+        }
+
+        public IEnumerable<FileClass> GetImplementationsOfInterface(FileClass fileClass)
+        {
+            var classes = Client.Cypher
+                .OptionalMatch("(_class:Class)-[:BASE_TYPE]->(baseType:Class)")
+                .Where((FileClass baseType) => baseType.FullClassName == fileClass.FullClassName)
+                .Return(_class => _class.As<FileClass>())
+                .Results.ToList();
+            return classes;
         }
 
         private void GetMethodsInClassAndCreateRelationship(FileClass fileClass, IUnresolvedMethod method)
