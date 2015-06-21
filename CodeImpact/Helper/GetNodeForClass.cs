@@ -4,6 +4,7 @@ using CodeImpact.Model;
 using ICSharpCode.NRefactory;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.CSharp.TypeSystem;
+using ICSharpCode.NRefactory.TypeSystem;
 
 namespace CodeImpact.Helper
 {
@@ -43,11 +44,11 @@ namespace CodeImpact.Helper
 
             foreach (var ct in classTree)
             {
-                var temp = ct.Descendants.First(x => x.Role == Roles.Identifier && x.NodeType == NodeType.Token && x.ToString() == fileClass.MemberName);
-                if (temp.ToString() == fileClass.MemberName)
+                var temp = ct.Descendants.Where(x => x.Role == Roles.Identifier && x.NodeType == NodeType.Token && x.ToString() == fileClass.MemberName);
+                if (temp.Count() == 1 && temp.First().ToString() == fileClass.MemberName)
                 {
                     theNode = ct;
-                    continue;
+                    break;
                 }
             }
             return theNode;
@@ -59,7 +60,14 @@ namespace CodeImpact.Helper
             var fileText = File.ReadAllText(fileClass.File);
             tree = new CSharpParser().Parse(fileText, Path.GetFileName(fileClass.File));
             return tree.ToTypeSystem();
-            
+        }
+
+        public static IUnresolvedTypeDefinition GetSyntaxTreeForFileClass(FileClass fileClass)
+        {
+            SyntaxTree tree;
+            var fileText = File.ReadAllText(fileClass.File);
+            tree = new CSharpParser().Parse(fileText, Path.GetFileName(fileClass.File));
+            return tree.ToTypeSystem().TopLevelTypeDefinitions.SingleOrDefault(x => x.ReflectionName == fileClass.FullClassName);
         }
     }
 }

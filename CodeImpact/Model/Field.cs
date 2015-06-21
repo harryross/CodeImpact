@@ -3,7 +3,7 @@ using CodeImpact.Model.Contract;
 
 namespace CodeImpact.Model
 {
-    public class Member : IMember
+    public class Field : IMember
     {
         public string MemberName { get; set; }
         public string MemberFullName { get; set; }
@@ -17,7 +17,7 @@ namespace CodeImpact.Model
     }
 
 
-    public enum MemberType
+    public enum FieldType
     {
         Method,
         Constructor,

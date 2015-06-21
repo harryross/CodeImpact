@@ -57,14 +57,42 @@ namespace CodeImpact.Commands
 
         private void GetMembersInClass(FileClass fileClass)
         {
-            var tree = GetNodeForClass.GetSyntaxTree(fileClass);
-            var member = tree.TopLevelTypeDefinitions.SingleOrDefault(x => x.ReflectionName == fileClass.FullClassName);
+            var member = GetNodeForClass.GetSyntaxTreeForFileClass(fileClass);
             if (member != null)
             {
                 foreach (var method in member.Methods)
                 {
                     GetMethodsInClassAndCreateRelationship(fileClass, method);
                 }
+                foreach (var field in member.Fields)
+                {
+                    CreateFieldInClassAndCreateRelationship(fileClass, field);
+                }
+            }
+        }
+
+        private void CreateFieldInClassAndCreateRelationship(FileClass fileClass, IUnresolvedField method)
+        {
+            var member = new Field
+            {
+                FileName = method.BodyRegion.FileName,
+                MemberType = method.SymbolKind.ToString(),
+                ReturnType = method.ReturnType.ToString(),
+                MemberName = method.Name,
+                MemberFullName = method.ReflectionName,
+                Accessibility = method.Accessibility.ToString(),
+                Class = fileClass.FullClassName,
+                File = fileClass.File
+            };
+
+            var referencedClasses = _classRepository.GetClassesReferencedBy(fileClass);
+            var referencedClass = referencedClasses.SingleOrDefault(x => x.ClassName == method.ReturnType.ToString());
+
+            _memberRepository.CreateOrMergeField(member);
+            _memberRepository.CreateFieldAndFileClassRelationship(fileClass, member);
+            if (referencedClass != null)
+            {
+                _memberRepository.CreateIsOfTypeClassRelationship(member, referencedClass);
             }
         }
 
@@ -72,18 +100,18 @@ namespace CodeImpact.Commands
         {
             var member = new Member
             {
-                File = method.BodyRegion.FileName,
+                FileName = method.BodyRegion.FileName,
                 MemberType = method.SymbolKind.ToString(),
                 ReturnType = method.ReturnType.ToString(),
                 MemberName = method.Name,
                 MemberFullName = method.ReflectionName,
                 Accessibility = method.Accessibility.ToString(),
-                Class = fileClass.FullClassName
+                Class = fileClass.FullClassName,
+                File = fileClass.File
             };
 
             _memberRepository.CreateOrMergeMember(member);
             _memberRepository.CreateMemberAndFileClassRelationship(fileClass, member);
-            
         }
     }
 }

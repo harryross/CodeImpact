@@ -94,9 +94,12 @@
     <Compile Include="Commands\CreateFileStructureCommand.cs" />
     <Compile Include="Commands\CreateMethodDirectory.cs" />
     <Compile Include="Commands\CreateMethodRelationships.cs" />
+    <Compile Include="Commands\MemberRelationships.cs" />
     <Compile Include="Controller\PopulateDirectoryController.cs" />
     <Compile Include="Helper\GetNodeForClass.cs" />
+    <Compile Include="Model\Contract\IMember.cs" />
     <Compile Include="Model\FileClass.cs" />
+    <Compile Include="Model\Field.cs" />
     <Compile Include="Model\Member.cs" />
     <Compile Include="Model\Relationships.cs" />
     <Compile Include="Program.cs" />

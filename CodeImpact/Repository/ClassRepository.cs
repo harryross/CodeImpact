@@ -81,5 +81,15 @@ namespace CodeImpact.Repository
                 .Results.ToList();
             return classes;
         }
+
+        public List<FileClass> GetClassesReferencedBy(FileClass fileclass)
+        {
+            var classes = Client.Cypher
+                .Match("(_class:Class)-[:REFERENCES]->(baseType:Class)")
+                .Where((FileClass _class) => _class.FullClassName == fileclass.FullClassName)
+                .Return(baseType => baseType.As<FileClass>())
+                .Results.ToList();
+            return classes;
+        } 
     }
 }

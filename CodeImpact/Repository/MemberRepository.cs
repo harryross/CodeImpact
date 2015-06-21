@@ -60,5 +60,39 @@ namespace CodeImpact.Repository
                 .CreateUnique("fromMember-[:BELONGS_TO]->toFile")
                 .ExecuteWithoutResults();
         }
+
+        public void CreateFieldAndFileClassRelationship(FileClass fileClass, Field member)
+        {
+            Client.Cypher
+                .Match("(fromMember:Field)", "(toFile:Class)")
+                .Where((FileClass toFile) => toFile.FullClassName == fileClass.FullClassName)
+                .AndWhere((Field fromMember) => fromMember.MemberFullName == member.MemberFullName)
+                .CreateUnique("fromMember-[:BELONGS_TO]->toFile")
+                .ExecuteWithoutResults();
+        }
+
+        public void CreateOrMergeField(Field field)
+        {
+            Client.Cypher
+                .Merge("(field:Field { MemberFullName: {memberFullName}})")
+                .OnCreate()
+                .Set("field = {field}")
+                .WithParams(new
+                {
+                    memberFullName = field.MemberFullName,
+                    field
+                })
+                .ExecuteWithoutResults();
+        }
+
+        public void CreateIsOfTypeClassRelationship(Field member, FileClass referencedClass)
+        {
+            Client.Cypher
+                .Match("(fromMember:Field)", "(toFile:Class)")
+                .Where((FileClass toFile) => toFile.FullClassName == referencedClass.FullClassName)
+                .AndWhere((Field fromMember) => fromMember.MemberFullName == member.MemberFullName)
+                .CreateUnique("fromMember-[:OF_TYPE]->toFile")
+                .ExecuteWithoutResults();
+        }
     }
 }

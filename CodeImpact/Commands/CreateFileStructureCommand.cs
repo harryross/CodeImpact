@@ -50,7 +50,7 @@ namespace CodeImpact.Commands
                         }
                         
                     }
-                    var tree = theNode.Descendants.Where(x => x.Role == Roles.Identifier && x.Parent.Role == Roles.Type && x.ToString() != "var").ToList();
+                    var tree = theNode.Descendants.Where(x => x.Role == Roles.Identifier && (x.Parent.Role == Roles.Type) && x.ToString() != "var").Distinct().ToList();
                     foreach (var member in tree)
                     {
                         if (member.ToString() != c.ClassName)
