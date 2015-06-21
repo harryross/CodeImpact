@@ -25,7 +25,7 @@ namespace CodeImpact.Helper
                 if (temp.ToString() == fileClass.ClassName)
                 {
                     theNode = ct;
-                    continue;
+                    break;
                 }
             }
             return theNode;

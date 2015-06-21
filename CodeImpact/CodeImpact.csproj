@@ -101,6 +101,8 @@
     <Compile Include="Model\Relationships.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Repository\ClassRepository.cs" />
+    <Compile Include="Repository\MemberRepository.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

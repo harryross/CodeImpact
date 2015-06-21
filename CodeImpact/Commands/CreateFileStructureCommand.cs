@@ -1,37 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CodeImpact.Helper;
 using CodeImpact.Model;
+using CodeImpact.Repository;
 using ICSharpCode.NRefactory.CSharp;
-using Neo4jClient;
 
 namespace CodeImpact.Commands
 {
     class CreateFileStructureCommand
     {
-        public static GraphClient Client { get; private set; }
         private SyntaxTree _syntaxTree;
+        private readonly ClassRepository _classRepository;
 
         public CreateFileStructureCommand()
         {
-            Client = new GraphClient(new Uri("http://neo4j:metead@localhost.:7474/db/data"));
+            _classRepository = new ClassRepository();
         }
+
         public void WriteList(List<string> list)
         {
-            
-            Client.Connect();
             UpdateDatabase(list);
             CreateClassRelationships();
         }
 
         private void CreateClassRelationships()
         {
-            var classes = Client.Cypher
-                .Match("(_class:Class)")
-                .Return(_class => _class.As<FileClass>())
-                .Results.ToList();
+            var classes = _classRepository.GetAllClassesFromGraph();
 
             foreach (var c in classes)
             {
@@ -51,7 +46,7 @@ namespace CodeImpact.Commands
                             {
                                 continue;
                             }
-                            AddBaseTypeRelationship(c.FullClassName, name.First().FullClassName);
+                            _classRepository.CreateBaseTypeRelationship(c, name.First());
                         }
                         
                     }
@@ -66,34 +61,13 @@ namespace CodeImpact.Commands
                             {
                                 continue;
                             }
-                            AddClassRelationship(c.FullClassName, name.First().FullClassName);
+                            _classRepository.CreateClassReferencesRelationship(c, name.First());
                         }
                     }
                 }
             }
         }
 
-
-
-        private void AddClassRelationship(string fromSourceFile, string toSourceFile)
-        {
-            Client.Cypher
-                .Match("(fromFile:Class)", "(toFile:Class)")
-                .Where((FileClass fromFile) => fromFile.FullClassName == fromSourceFile)
-                .AndWhere((FileClass toFile) => toFile.FullClassName == toSourceFile)
-                .CreateUnique("fromFile-[:REFERENCES]->toFile")
-                .ExecuteWithoutResults();
-        }
-
-        private void AddBaseTypeRelationship(string fromSourceClass, string toSourceClass)
-        {
-            Client.Cypher
-                .Match("(fromFile:Class)", "(toFile:Class)")
-                .Where((FileClass fromFile) => fromFile.FullClassName == fromSourceClass)
-                .AndWhere((FileClass toFile) => toFile.FullClassName == toSourceClass)
-                .CreateUnique("fromFile-[:BASE_TYPE]->toFile")
-                .ExecuteWithoutResults();
-        }
 
         private void UpdateDatabase(List<string> list)
         {
@@ -103,16 +77,7 @@ namespace CodeImpact.Commands
                 foreach (var fileClass in results)
                 {
                     
-                    Client.Cypher
-                        .Merge("(_class:Class { FullClassName: {fullClassName}})")
-                        .OnCreate()
-                        .Set("_class = {fileClass}")
-                        .WithParams(new
-                        {
-                            fullClassName = fileClass.FullClassName,
-                            fileClass
-                        })
-                        .ExecuteWithoutResults();
+                    _classRepository.CreateOrMergeClass(fileClass);
                 }
                 
             }

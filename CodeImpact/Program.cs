@@ -7,7 +7,7 @@ namespace CodeImpact
         static void Main(string[] args)
         {
             var method = new PopulateDirectoryController();
-            method.PopulateDictionary("C:\\Dev\\MyXero\\project\\MyXeroWeb");
+            method.PopulateDictionary("D:\\Dev\\SImplePrintApp");
         }
     }
 
