@@ -7,7 +7,7 @@ namespace CodeImpact
         static void Main(string[] args)
         {
             var method = new PopulateDirectoryController();
-            method.PopulateDictionary("D:\\Dev\\SImplePrintApp");
+            method.PopulateDictionary("D:\\Dev\\CodeImpact");
         }
     }
 

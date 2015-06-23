@@ -44,10 +44,10 @@ namespace CodeImpact.Helper
 
             foreach (var ct in classTree)
             {
-                var temp = ct.Descendants.Where(x => x.Role == Roles.Identifier && x.NodeType == NodeType.Token && x.ToString() == fileClass.MemberName);
+                var temp = ct.Descendants.Where(x => x.Role == Roles.Identifier && x.NodeType == NodeType.Token && x.ToString() == fileClass.MemberName && x.Parent.Role == Role.GetByIndex(21));
                 if (temp.Count() == 1 && temp.First().ToString() == fileClass.MemberName)
                 {
-                    theNode = ct;
+                    theNode = temp.First().Parent;
                     break;
                 }
             }

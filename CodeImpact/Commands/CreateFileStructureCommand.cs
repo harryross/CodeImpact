@@ -4,6 +4,7 @@ using System.Linq;
 using CodeImpact.Helper;
 using CodeImpact.Model;
 using CodeImpact.Repository;
+using ICSharpCode.NRefactory;
 using ICSharpCode.NRefactory.CSharp;
 
 namespace CodeImpact.Commands
@@ -50,7 +51,17 @@ namespace CodeImpact.Commands
                         }
                         
                     }
-                    var tree = theNode.Descendants.Where(x => x.Role == Roles.Identifier && (x.Parent.Role == Roles.Type) && x.ToString() != "var").Distinct().ToList();
+                    var tree =
+                        theNode.Descendants.Where(
+                            x => x.Role == Roles.Identifier && x.Parent.Role == Roles.Type && x.ToString() != "var")
+                            .Distinct()
+                            .ToList();
+                    var staticNodes =
+                        theNode.Descendants.Where(
+                            x =>
+                                x.Parent.Role == Role.GetByIndex(14) && x.Parent.NodeType == NodeType.Expression &&
+                                x.NodeType == NodeType.Expression && x.Role == Role.GetByIndex(14)).ToList();
+                    tree.AddRange(staticNodes);
                     foreach (var member in tree)
                     {
                         if (member.ToString() != c.ClassName)

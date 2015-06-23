@@ -90,6 +90,16 @@ namespace CodeImpact.Repository
                 .Return(baseType => baseType.As<FileClass>())
                 .Results.ToList();
             return classes;
-        } 
+        }
+
+        public List<FileClass> GetClassBaseTypes(FileClass fileclass)
+        {
+            var classes = Client.Cypher
+                .Match("(_class:Class)-[:BASE_TYPE*]->(baseType:Class)")
+                .Where((FileClass _class) => _class.FullClassName == fileclass.FullClassName)
+                .Return(baseType => baseType.As<FileClass>())
+                .Results.ToList();
+            return classes;
+        }
     }
 }

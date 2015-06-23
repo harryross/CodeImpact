@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.IO;
+using System.Linq;
 using CodeImpact.Helper;
 using CodeImpact.Model;
 using CodeImpact.Repository;
@@ -103,8 +104,8 @@ namespace CodeImpact.Commands
                 FileName = method.BodyRegion.FileName,
                 MemberType = method.SymbolKind.ToString(),
                 ReturnType = method.ReturnType.ToString(),
-                MemberName = method.Name,
-                MemberFullName = method.ReflectionName,
+                MemberName = GetMemberName(method.Name, fileClass.ClassName),
+                MemberFullName = GetMemberFullName(method.Name, method.ReflectionName, fileClass.FullClassName, fileClass.ClassName),
                 Accessibility = method.Accessibility.ToString(),
                 Class = fileClass.FullClassName,
                 File = fileClass.File
@@ -112,6 +113,24 @@ namespace CodeImpact.Commands
 
             _memberRepository.CreateOrMergeMember(member);
             _memberRepository.CreateMemberAndFileClassRelationship(fileClass, member);
+        }
+
+        private string GetMemberName(string name, string className)
+        {
+            if (name == ".ctor")
+            {
+                return className;
+            }
+            return name;
+        }
+
+        private string GetMemberFullName(string name, string fullName, string fullClassName, string className)
+        {
+            if (name == ".ctor")
+            {
+                return fullClassName + "." + className;
+            }
+            return fullName;
         }
     }
 }
