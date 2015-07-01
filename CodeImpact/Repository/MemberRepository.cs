@@ -70,6 +70,13 @@ namespace CodeImpact.Repository
                 .AndWhere((Member fromMember) => fromMember.MemberFullName == member.MemberFullName)
                 .CreateUnique("fromMember-[:BELONGS_TO]->toFile")
                 .ExecuteWithoutResults();
+
+            Client.Cypher
+               .Match("(fromMember:Member)", "(toFile:Class)")
+               .Where((FileClass toFile) => toFile.ClassName == member.ReturnType)
+               .AndWhere((Member fromMember) => fromMember.MemberFullName == member.MemberFullName)
+               .CreateUnique("fromMember-[:RETURNS]->toFile")
+               .ExecuteWithoutResults();
         }
 
         public void CreateFieldAndFileClassRelationship(FileClass fileClass, Field member)
@@ -80,6 +87,13 @@ namespace CodeImpact.Repository
                 .AndWhere((Field fromMember) => fromMember.MemberFullName == member.MemberFullName)
                 .CreateUnique("fromMember-[:BELONGS_TO]->toFile")
                 .ExecuteWithoutResults();
+
+            Client.Cypher
+               .Match("(fromMember:Member)", "(toFile:Class)")
+               .Where((FileClass toFile) => toFile.ClassName == member.ReturnType)
+               .AndWhere((Member fromMember) => fromMember.MemberFullName == member.MemberFullName)
+               .CreateUnique("fromMember-[:RETURNS]->toFile")
+               .ExecuteWithoutResults();
         }
 
         public void CreateOrMergeField(Field field)
